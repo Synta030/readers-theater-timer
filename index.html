@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reader's Theater Timer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0d;
+    --surface: #1a1a1a;
+    --border: #333;
+    --text: #f5f5f5;
+    --yellow: #ffd600;
+    --red: #ff3b3b;
+    --green: #00e676;
+    --muted: #888;
+    --btn-bg: #2a2a2a;
+    --btn-hover: #3a3a3a;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 1rem 2rem;
+    gap: 1.2rem;
+  }
+
+  h1 { font-size: 1rem; letter-spacing: .15em; color: var(--muted); text-transform: uppercase; }
+
+  #title-display {
+    font-size: clamp(1.4rem, 5vw, 2.4rem);
+    font-weight: 700;
+    color: var(--yellow);
+    text-align: center;
+    letter-spacing: .05em;
+    min-height: 2.4rem;
+    word-break: break-word;
+  }
+
+  /* ── main timer ── */
+  #timer-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .5rem;
+    padding: 1.6rem 2.4rem;
+    border: 2px solid var(--border);
+    border-radius: 1.2rem;
+    background: var(--surface);
+    width: 100%;
+    max-width: 480px;
+  }
+
+  #timer {
+    font-size: clamp(4.5rem, 18vw, 8rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: .04em;
+    color: var(--text);
+    transition: color .3s;
+    display: flex;
+    align-items: baseline;
+  }
+  #timer-main {
+    display: inline;
+  }
+  #timer.overtime { color: var(--red); }
+    font-size: .38em;
+    font-weight: 700;
+    vertical-align: baseline;
+    letter-spacing: .02em;
+    opacity: .85;
+  }
+
+  #limit-bar {
+    font-size: .85rem;
+    color: var(--muted);
+    letter-spacing: .05em;
+  }
+
+  #overtime-display {
+    font-size: clamp(1.6rem, 6vw, 2.8rem);
+    font-weight: 700;
+    color: var(--red);
+    font-variant-numeric: tabular-nums;
+    display: none;
+  }
+  #overtime-display.show { display: block; }
+
+  #penalty-label {
+    font-size: clamp(1rem, 3.5vw, 1.4rem);
+    color: var(--red);
+    font-weight: 600;
+    display: none;
+  }
+  #penalty-label.show { display: block; }
+
+  /* ── buttons ── */
+  .btn-row {
+    display: flex;
+    gap: .8rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  button {
+    border: none;
+    border-radius: .6rem;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    padding: .7rem 1.8rem;
+    transition: background .15s, transform .1s;
+    outline: none;
+  }
+  button:active { transform: scale(.96); }
+
+  #btn-start {
+    background: var(--green);
+    color: #000;
+    flex: 2;
+    font-size: 1.1rem;
+  }
+  #btn-start:hover { background: #33ff8a; }
+  #btn-start.paused { background: var(--yellow); color: #000; }
+  #btn-start.paused:hover { background: #ffe033; }
+
+  #btn-reset {
+    background: var(--btn-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    flex: 1;
+  }
+  #btn-reset:hover { background: var(--btn-hover); }
+
+  /* ── settings panel ── */
+  #settings-toggle {
+    background: var(--btn-bg);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    font-size: .85rem;
+    padding: .45rem 1.2rem;
+    border-radius: .5rem;
+    letter-spacing: .06em;
+  }
+  #settings-toggle:hover { background: var(--btn-hover); color: var(--text); }
+
+  #settings {
+    width: 100%;
+    max-width: 480px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.2rem 1.4rem;
+    display: none;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  #settings.open { display: flex; }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+  }
+  label {
+    font-size: .8rem;
+    color: var(--muted);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  input[type="text"], input[type="number"] {
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: .5rem;
+    color: var(--text);
+    font-size: 1rem;
+    padding: .5rem .8rem;
+    width: 100%;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input:focus { border-color: var(--yellow); }
+
+  .row { display: flex; gap: .8rem; }
+  .row .field-group { flex: 1; }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    justify-content: space-between;
+  }
+  .toggle-label { font-size: .9rem; color: var(--text); }
+
+  /* toggle switch */
+  .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: #444; border-radius: 24px; transition: .3s;
+  }
+  .slider::before {
+    content: ""; position: absolute;
+    width: 18px; height: 18px; left: 3px; bottom: 3px;
+    background: #fff; border-radius: 50%; transition: .3s;
+  }
+  input:checked + .slider { background: var(--yellow); }
+  input:checked + .slider::before { transform: translateX(20px); }
+
+  /* ── hint ── */
+  #hint {
+    font-size: .75rem;
+    color: #555;
+    letter-spacing: .04em;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>Reader's Theater</h1>
+<div id="title-display">Group Name</div>
+
+<div id="timer-wrap">
+  <div id="timer"><span id="timer-main">0:00</span></div>
+  <div id="limit-bar">Limit: 5:00</div>
+  <div id="overtime-display">+0:00 overtime</div>
+  <div id="penalty-label">Overtime penalty: −0 pts</div>
+</div>
+
+<div class="btn-row">
+  <button id="btn-start">▶ START</button>
+  <button id="btn-reset">↺ RESET</button>
+</div>
+
+<button id="settings-toggle">⚙ SETTINGS</button>
+
+<div id="settings">
+  <div class="field-group">
+    <label>Team / Group Title</label>
+    <input type="text" id="inp-title" value="Group Name" placeholder="e.g. Team Alpha">
+  </div>
+  <div class="row">
+    <div class="field-group">
+      <label>Time Limit (min)</label>
+      <input type="number" id="inp-limit-min" value="5" min="0" max="99">
+    </div>
+    <div class="field-group">
+      <label>Time Limit (sec)</label>
+      <input type="number" id="inp-limit-sec" value="0" min="0" max="59">
+    </div>
+  </div>
+  <div class="row">
+    <div class="field-group">
+      <label>Penalty (pts)</label>
+      <input type="number" id="inp-penalty-pts" value="2" min="0" max="99">
+    </div>
+    <div class="field-group">
+      <label>Per (seconds)</label>
+      <input type="number" id="inp-penalty-per" value="30" min="1" max="999">
+    </div>
+  </div>
+  <div class="toggle-row">
+    <span class="toggle-label">Show penalty label</span>
+    <label class="switch">
+      <input type="checkbox" id="tog-penalty" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="toggle-row">
+    <span class="toggle-label">Show milliseconds</span>
+    <label class="switch">
+      <input type="checkbox" id="tog-ms">
+      <span class="slider"></span>
+    </label>
+  </div>
+</div>
+
+<div id="hint">Space = Start / Pause &nbsp;|&nbsp; R = Reset</div>
+
+<script>
+  // ── state ──
+  let elapsed = 0;       // ms
+  let running = false;
+  let lastTick = null;
+  let rafId = null;
+
+  // ── settings ──
+  let limitMs = 5 * 60 * 1000;
+  let penaltyPts = 2;
+  let penaltyPer = 30;   // seconds
+  let showPenalty = true;
+
+  // ── elements ──
+  const timerEl = document.getElementById('timer');
+  const limitBar = document.getElementById('limit-bar');
+  const otEl    = document.getElementById('overtime-display');
+  const penEl   = document.getElementById('penalty-label');
+  const btnStart= document.getElementById('btn-start');
+  const btnReset= document.getElementById('btn-reset');
+  const settingsEl = document.getElementById('settings');
+  const settingsToggle = document.getElementById('settings-toggle');
+
+  const inpTitle     = document.getElementById('inp-title');
+  const inpLimitMin  = document.getElementById('inp-limit-min');
+  const inpLimitSec  = document.getElementById('inp-limit-sec');
+  const inpPenPts    = document.getElementById('inp-penalty-pts');
+  const inpPenPer    = document.getElementById('inp-penalty-per');
+  const togPenalty   = document.getElementById('tog-penalty');
+  const titleDisplay = document.getElementById('title-display');
+
+  // ── helpers ──
+  let showMs = false;
+
+  function fmt(ms, forceNoMs = false) {
+    const tot = Math.floor(Math.abs(ms) / 1000);
+    const m = Math.floor(tot / 60);
+    const s = tot % 60;
+    const base = `${m}:${String(s).padStart(2,'0')}`;
+    if (showMs && !forceNoMs) {
+      const centis = Math.floor((Math.abs(ms) % 1000) / 10);
+      return { main: base, ms: `.${String(centis).padStart(2,'0')}` };
+    }
+    return { main: base, ms: null };
+  }
+
+  function calcPenalty(overtimeMs) {
+    if (overtimeMs <= 0) return 0;
+    const secs = Math.floor(overtimeMs / 1000);
+    return Math.floor(secs / penaltyPer) * penaltyPts;
+  }
+
+  function render() {
+    const f = fmt(elapsed);
+    document.getElementById('timer-main').textContent = f.main;
+    let msSpan = document.getElementById('timer-ms');
+    if (f.ms) {
+      if (!msSpan) {
+        msSpan = document.createElement('span');
+        msSpan.id = 'timer-ms';
+        msSpan.className = 'ms-part';
+        timerEl.appendChild(msSpan);
+      }
+      msSpan.textContent = f.ms;
+    } else if (msSpan) {
+      msSpan.remove();
+    }
+    const over = elapsed - limitMs;
+    const isOver = over > 0;
+
+    timerEl.classList.toggle('overtime', isOver);
+
+    if (isOver) {
+      otEl.classList.add('show');
+      const fOt = fmt(over);
+    otEl.textContent = `+${fOt.main} overtime`;
+      if (showPenalty) {
+        penEl.classList.add('show');
+        penEl.textContent = `Overtime penalty: −${calcPenalty(over)} pts`;
+      } else {
+        penEl.classList.remove('show');
+      }
+    } else {
+      otEl.classList.remove('show');
+      penEl.classList.remove('show');
+    }
+  }
+
+  function tick(ts) {
+    if (lastTick !== null) elapsed += ts - lastTick;
+    lastTick = ts;
+    render();
+    if (running) rafId = requestAnimationFrame(tick);
+  }
+
+  function start() {
+    if (running) return;
+    running = true;
+    lastTick = null;
+    rafId = requestAnimationFrame(tick);
+    btnStart.textContent = '⏸ PAUSE';
+    btnStart.classList.add('paused');
+  }
+
+  function pause() {
+    if (!running) return;
+    running = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    btnStart.textContent = '▶ RESUME';
+    btnStart.classList.add('paused');
+  }
+
+  function reset() {
+    running = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    elapsed = 0;
+    lastTick = null;
+    btnStart.textContent = '▶ START';
+    btnStart.classList.remove('paused');
+    render();
+  }
+
+  function toggleRun() {
+    if (running) pause(); else start();
+  }
+
+  function applySettings() {
+    const lm = parseInt(inpLimitMin.value) || 0;
+    const ls = parseInt(inpLimitSec.value) || 0;
+    limitMs = (lm * 60 + ls) * 1000;
+    penaltyPts = parseInt(inpPenPts.value) || 0;
+    penaltyPer = Math.max(1, parseInt(inpPenPer.value) || 30);
+    showPenalty = togPenalty.checked;
+    limitBar.textContent = `Limit: ${fmt(limitMs, true).main}`;
+    render();
+  }
+
+  // ── event listeners ──
+  btnStart.addEventListener('click', toggleRun);
+  btnReset.addEventListener('click', reset);
+
+  settingsToggle.addEventListener('click', () => {
+    settingsEl.classList.toggle('open');
+    settingsToggle.textContent = settingsEl.classList.contains('open')
+      ? '✕ CLOSE SETTINGS' : '⚙ SETTINGS';
+  });
+
+  inpTitle.addEventListener('input', () => {
+    titleDisplay.textContent = inpTitle.value || 'Group Name';
+  });
+
+  const togMs = document.getElementById('tog-ms');
+  togMs.addEventListener('change', () => { showMs = togMs.checked; render(); });
+
+  [inpLimitMin, inpLimitSec, inpPenPts, inpPenPer, togPenalty]
+    .forEach(el => el.addEventListener('change', applySettings));
+
+  document.addEventListener('keydown', e => {
+    if (['INPUT','TEXTAREA'].includes(e.target.tagName)) return;
+    if (e.code === 'Space') { e.preventDefault(); toggleRun(); }
+    if (e.key.toLowerCase() === 'r') reset();
+  });
+
+  // ── init ──
+  applySettings();
+  render();
+</script>
+</body>
+</html>

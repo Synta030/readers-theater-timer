@@ -219,7 +219,26 @@
   input:checked + .slider { background: var(--yellow); }
   input:checked + .slider::before { transform: translateX(20px); }
 
-  /* ── hint ── */
+  #btn-fs {
+    position: fixed;
+    bottom: 1.2rem;
+    right: 1.2rem;
+    background: var(--btn-bg);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: .5rem;
+    font-size: 1.4rem;
+    width: 2.6rem;
+    height: 2.6rem;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 999;
+    transition: background .15s, color .15s;
+  }
+  #btn-fs:hover { background: var(--btn-hover); color: var(--text); }
   #hint {
     font-size: .75rem;
     color: #555;
@@ -230,7 +249,6 @@
 </head>
 <body>
 
-<h1>Reader's Theater</h1>
 <div id="title-display">Group Name</div>
 
 <div id="timer-wrap">
@@ -289,6 +307,8 @@
 </div>
 
 <div id="hint">Space = Start / Pause &nbsp;|&nbsp; R = Reset</div>
+
+<button id="btn-fs" title="Fullscreen">⛶</button>
 
 <script>
   // ── state ──
@@ -453,7 +473,24 @@
     if (e.key.toLowerCase() === 'r') reset();
   });
 
-  // ── init ──
+  const btnFs = document.getElementById('btn-fs');
+  btnFs.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      btnFs.textContent = '✕';
+      btnFs.title = 'Exit Fullscreen';
+    } else {
+      document.exitFullscreen();
+      btnFs.textContent = '⛶';
+      btnFs.title = 'Fullscreen';
+    }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+      btnFs.textContent = '⛶';
+      btnFs.title = 'Fullscreen';
+    }
+  });
   applySettings();
   render();
 </script>
